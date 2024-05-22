@@ -1,14 +1,13 @@
 from django.db import models
 
-from apis.models.restaurant import Food
+from apis.models.abstract import BasePayment
+from apis.models.restaurant import Food, Menu, Restaurant, Meal, FoodItem
+from apis.models.user import User
 
 
-class Reservation(models.Model):
-    reservs=models.ManyToManyField(Food,related_name='reservations')
+class Reservation(BasePayment):
+    fooditem = models.ForeignKey(FoodItem, on_delete=models.CASCADE, related_name='reservations', null=True, blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reservations', null=True, blank=True)
+
     def __str__(self):
-        myfoods="reservs:"
-        for food in self.reservs.all():
-            myfoods+=food.name
-        return "{} ".format(myfoods)
-
-
+        return "{}"

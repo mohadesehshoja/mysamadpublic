@@ -1,14 +1,11 @@
 from django.db import models
 
-class Financial(models.Model):
-    payment_amount = models.IntegerField(default=0)
-    payment_date = models.DateField(auto_now_add=True)
-    payment_id = models.IntegerField(null=True, blank=True)
+from apis.models.abstract import BasePayment
+from apis.models.user import User
+
+
+class Financial(BasePayment):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='financials', null=True, blank=True)
+
     def __str__(self):
-        return "{}".format(self.payment_amount)
-
-
-
-
-
-
+        return "{}".format(self.user_financial.username)
