@@ -1,6 +1,16 @@
 from django.db import models
 
 
+class TimeStampedModel(models.Model):
+    created = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
+    active = models.BooleanField(default=True)
+
+    class Meta:
+        abstract = True
+        ordering = ['created']
+
+
 class BaseModel(models.Model):
     name = models.CharField(max_length=100)
 
@@ -12,9 +22,9 @@ class BaseModel(models.Model):
 
 
 class BasePayment(models.Model):
-    payment_amount = models.IntegerField(null=True, blank=True)
-    payment_date = models.DateField(auto_now_add=True, null=True, blank=True)
-    payment_id = models.IntegerField(null=True, blank=True)
+    payment_amount = models.IntegerField()
+    payment_date = models.DateField(auto_now_add=True)
+    payment_id = models.IntegerField()
 
     class Meta:
         abstract = True
