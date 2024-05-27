@@ -4,27 +4,27 @@ from apis.models.financial import Financial
 from apis.models.profile import Profile
 from apis.models.reservation import Reservation
 from apis.models.university import University
-from apis.models.user import User
+from apis.models.user import MyUser
 
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
-        model = User
+        model = MyUser
         fields = '__all__'
 
     def validate(self, data):
         if len(data['password']) < 8:
             raise serializers.ValidationError("password must be at least 8 characters long")
-        if User.objects.filter(username=data['username']).exists():
+        if MyUser.objects.filter(username=data['username']).exists():
             raise serializers.ValidationError("we have already registered with this username")
-        if User.objects.filter(password=data['password']).exists():
+        if MyUser.objects.filter(password=data['password']).exists():
             raise serializers.ValidationError("password")
         return data
 
 
 class UserLoginSerializer(serializers.ModelSerializer):
     class Meta:
-        model = User
+        model = MyUser
         fields = ['username', 'password', "unis"]
 
 

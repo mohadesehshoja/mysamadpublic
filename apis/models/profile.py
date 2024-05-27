@@ -1,11 +1,11 @@
 from django.db import models
 
 from apis.models.abstract import TimeStampedModel
-from .user import User
+from .user import MyUser
 
 
 class Profile(TimeStampedModel):
-    user = models.OneToOneField(User, on_delete=models.DO_NOTHING, null=True, blank=True)
+    user = models.OneToOneField(MyUser, on_delete=models.DO_NOTHING, null=True, blank=True)
     full_name = models.CharField(max_length=120)
     student_id = models.IntegerField()
     id_number = models.IntegerField()

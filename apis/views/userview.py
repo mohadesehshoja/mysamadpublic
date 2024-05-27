@@ -8,10 +8,10 @@ from apis.models.financial import Financial
 from apis.models.reservation import Reservation
 from apis.models.restaurant import MenuItem
 from apis.models.university import University
-from apis.models.user import User
-from apis.serializations.userserialization import UserSerializer, UserLoginSerializer, UniversitySerializer, \
-    ProfileSerializer, FinancialSerializer, ReservationSerializer
-from module.check import CheckAuthentication
+from apis.models.user import MyUser
+from apis.serializations.userserialization import UserSerializer, UniversitySerializer, \
+    ProfileSerializer, FinancialSerializer, ReservationSerializer, UserLoginSerializer
+from module.check import CheckAuthentication, CheckToken
 
 
 class UniversityViewSet(viewsets.ViewSet):
@@ -20,31 +20,32 @@ class UniversityViewSet(viewsets.ViewSet):
         serializer = UniversitySerializer(queryset, many=True)
         return Response(serializer.data)
 
-    def create(self, request):
-        serializer = UniversitySerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors)
-
 
 class UserViewSet(viewsets.ViewSet):
     def list(self, request):
-        queryset = User.objects.all()
-        serializer = UserSerializer(queryset, many=True)
-        return Response(serializer.data)
+        token2 = request.COOKIES.get('admin_token')
+        admin = CheckToken(token2)
+        if admin != False:
+            queryset = MyUser.objects.all()
+            serializer = UserSerializer(queryset, many=True)
+            return Response(serializer.data)
+        return Response("you must be admin!!")
 
     def create(self, request):
-        serializer = UserSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors)
+        token2 = request.COOKIES.get('admin_token')
+        admin = CheckToken(token2)
+        if admin != False:
+            serializer = UserSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors)
+        return Response("you must be admin!!")
 
 
 class LoginViewSet(viewsets.ViewSet):
     def list(self, request):
-        queryset = User.objects.all()
+        queryset = MyUser.objects.all()
         serializer = UserLoginSerializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -53,7 +54,7 @@ class LoginViewSet(viewsets.ViewSet):
         username = request.data.get("username")
         password = request.data.get("password")
         unis = request.data.get("unis")
-        qs = User.objects.filter(username=username)
+        qs = MyUser.objects.filter(username=username)
         if qs.exists():
             ps = qs.filter(password=password)
             if ps.exists():
@@ -68,11 +69,11 @@ class LoginViewSet(viewsets.ViewSet):
                 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=60),
                 'iat': datetime.datetime.utcnow()
             }
-            token = jwt.encode(payload, 'secret', algorithm='HS256')
+            user_token = jwt.encode(payload, 'secret', algorithm='HS256')
             response = Response()
-            response.set_cookie(key='token', value=token, httponly=True)
+            response.set_cookie(key='user_token', value=user_token, httponly=True)
             response.data = {
-                'token': str(token)
+                'user_token': str(user_token)
             }
             return response
         else:
@@ -82,7 +83,7 @@ class LoginViewSet(viewsets.ViewSet):
 class LogoutViewSet(viewsets.ViewSet):
     def list(self, request):
         response = Response()
-        response.delete_cookie(key='token')
+        response.delete_cookie(key='user_token')
         response.data = {
             'message': 'logged out'
         }
@@ -91,13 +92,13 @@ class LogoutViewSet(viewsets.ViewSet):
 
 class ProfileViewSet(viewsets.ViewSet):
     def list(self, request):
-        token = request.COOKIES.get('token')
+        token = request.COOKIES.get('user_token')
         user = CheckAuthentication(token)
         serializer = ProfileSerializer(user.profile)
         return Response(serializer.data)
 
     def create(self, request):
-        token = request.COOKIES.get('token')
+        token = request.COOKIES.get('user_token')
         user = CheckAuthentication(token)
         data = request.data
         data.update({'user': user.id})
@@ -111,7 +112,7 @@ class ProfileViewSet(viewsets.ViewSet):
 class FinancialViewSet(viewsets.ViewSet):
     def list(self, request):
         final = []
-        token = request.COOKIES.get('token')
+        token = request.COOKIES.get('user_token')
         user = CheckAuthentication(token)
         for financial in Financial.objects.filter(user_id=user.id):
             data = {
@@ -128,7 +129,7 @@ class FinancialViewSet(viewsets.ViewSet):
         return Response(final)
 
     def create(self, request):
-        token = request.COOKIES.get('token')
+        token = request.COOKIES.get('user_token')
         user = CheckAuthentication(token)
         data = request.data
         data.update({'user': user.id})
@@ -142,7 +143,7 @@ class FinancialViewSet(viewsets.ViewSet):
 class ReservationViewSet(viewsets.ViewSet):
     def list(self, request):
         final = []
-        token = request.COOKIES.get('token')
+        token = request.COOKIES.get('user_token')
         user = CheckAuthentication(token)
         for reservation in Reservation.objects.filter(user_id=user.id):
             data = {
@@ -160,7 +161,7 @@ class ReservationViewSet(viewsets.ViewSet):
         return Response(final)
 
     def create(self, request):
-        token = request.COOKIES.get('token')
+        token = request.COOKIES.get('user_token')
         user = CheckAuthentication(token)
         data = request.data
         menuitem = MenuItem.objects.filter(id=data['menuitem'])

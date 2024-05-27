@@ -1,18 +1,38 @@
 import jwt
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
-from apis.models.user import User
+from apis.models.user import MyUser, Admin
 
 
 def CheckAuthentication(token):
+    user_check = True
     if not token:
-        return AuthenticationFailed('Token is missing')
+        user_check = False
     try:
         payload = jwt.decode(token, 'secret', algorithms=['HS256'])
     except:
-        return AuthenticationFailed('Token is missing')
+        user_check = False
     try:
-        user = User.objects.get(pk=payload['id'])
-    except user.DoesNotExist:
-        return Response("Unis does not exist")
-    return user
+        user = MyUser.objects.get(pk=payload['id'])
+    except UnboundLocalError:
+        user_check = False
+    if user_check:
+        return user
+    return user_check
+
+
+def CheckToken(token):
+    admin_check = True
+    if not token:
+        admin_check = False
+    try:
+        admin_token = jwt.decode(token, 'secret', algorithms=['HS256'])
+    except:
+        admin_check = False
+    try:
+        admin = Admin.objects.get(pk=admin_token['id'])
+    except UnboundLocalError:
+        admin_check = False
+    if admin_check:
+        return admin
+    return admin_check
