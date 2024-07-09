@@ -9,3 +9,5 @@ class Financial(TimeStampedModel, BasePayment):
 
     def __str__(self):
         return "{}".format(self.user.username)
+
+

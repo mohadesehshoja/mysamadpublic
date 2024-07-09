@@ -13,43 +13,18 @@ from module.check import CheckAuthentication, CheckToken
 class RestaurantViewSet(viewsets.ViewSet):
 
     def list(self, request):
-        final = []
         token = request.COOKIES.get('user_token')
         user = CheckAuthentication(token)
         token2 = request.COOKIES.get('admin_token')
         admin = CheckToken(token2)
         if user != False:
-            for restaurant in Restaurant.objects.filter(uni__name=user.unis.name):
-                data = {
-                    "id": restaurant.id,
-                    "created": restaurant.created,
-                    "modified": restaurant.modified,
-                    "active": restaurant.active,
-                    "name": restaurant.name,
-                    "address": restaurant.address,
-                    "phone": restaurant.phone,
-                    "opening_hours": restaurant.opening_hours,
-                    "closing_hours": restaurant.closing_hours,
-                    "uni": user.unis.id
-                }
-                final.append(data)
-            return Response(final)
+            queryset = Restaurant.objects.filter(uni=user.unis)
+            serializer = RestaurantSerializer(queryset, many=True)
+            return Response(serializer.data)
         elif admin != False:
-            for restaurant in Restaurant.objects.filter(uni__name=admin.unis.name):
-                data = {
-                    "id": restaurant.id,
-                    "created": restaurant.created,
-                    "modified": restaurant.modified,
-                    "active": restaurant.active,
-                    "name": restaurant.name,
-                    "address": restaurant.address,
-                    "phone": restaurant.phone,
-                    "opening_hours": restaurant.opening_hours,
-                    "closing_hours": restaurant.closing_hours,
-                    "uni": admin.unis.id
-                }
-                final.append(data)
-            return Response(final)
+            queryset = Restaurant.objects.filter(uni=admin.unis)
+            serializer = RestaurantSerializer(queryset, many=True)
+            return Response(serializer.data)
         return Response("cant access this page")
 
     def create(self, request):
@@ -110,31 +85,18 @@ class MenuViewSet(viewsets.ViewSet):
         if user != False:
             unis = user.unis
             for item in Restaurant.objects.filter(uni__name=unis):
-                for item2 in Menu.objects.filter(restaurant__name=item.name):
-                    data = {
-                        "id": item2.id,
-                        "created": item2.created,
-                        "modified": item2.modified,
-                        "active": item2.active,
-                        "date": item2.date,
-                        "restaurant": item2.restaurant.id
-                    }
-                    final.append(data)
+                queryset = Menu.objects.filter(restaurant=item)
+                serializer = MenuSerializer(queryset, many=True)
+                final.extend(serializer.data)
             return Response(final)
         elif admin != False:
             unis = admin.unis
             for item in Restaurant.objects.filter(uni__name=unis):
-                for item2 in Menu.objects.filter(restaurant__name=item.name):
-                    data = {
-                        "id": item2.id,
-                        "created": item2.created,
-                        "modified": item2.modified,
-                        "active": item2.active,
-                        "date": item2.date,
-                        "restaurant": item2.restaurant.id
-                    }
-                    final.append(data)
+                queryset = Menu.objects.filter(restaurant=item)
+                serializer = MenuSerializer(queryset, many=True)
+                final.extend(serializer.data)
             return Response(final)
+        return Response("you must be admin or user!!!")
 
     def create(self, request):
         token2 = request.COOKIES.get('admin_token')
@@ -159,34 +121,18 @@ class MenuItemViewSet(viewsets.ViewSet):
             final = []
             for item in Restaurant.objects.filter(uni__name=unis):
                 for item2 in Menu.objects.filter(restaurant__name=item.name):
-                    for item3 in MenuItem.objects.filter(menu_id=item2.id):
-                        data = {
-                            "id": item3.id,
-                            "created": item3.created,
-                            "modified": item3.modified,
-                            "active": item3.active,
-                            "meal": item3.meal.id,
-                            "food": item3.food.id,
-                            "menu": item3.menu.id
-                        }
-                        final.append(data)
+                    queryset = MenuItem.objects.filter(menu=item2)
+                    serializer = MenuItemSerializer(queryset, many=True)
+                    final.extend(serializer.data)
             return Response(final)
         elif admin != False:
             unis = admin.unis
             final = []
             for item in Restaurant.objects.filter(uni__name=unis):
                 for item2 in Menu.objects.filter(restaurant__name=item.name):
-                    for item3 in MenuItem.objects.filter(menu_id=item2.id):
-                        data = {
-                            "id": item3.id,
-                            "created": item3.created,
-                            "modified": item3.modified,
-                            "active": item3.active,
-                            "meal": item3.meal.id,
-                            "food": item3.food.id,
-                            "menu": item3.menu.id
-                        }
-                        final.append(data)
+                    queryset = MenuItem.objects.filter(menu=item2)
+                    serializer = MenuItemSerializer(queryset, many=True)
+                    final.extend(serializer.data)
             return Response(final)
         return Response("you must be admin or user!!!")
 

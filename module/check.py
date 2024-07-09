@@ -5,34 +5,41 @@ from apis.models.user import MyUser, Admin
 
 
 def CheckAuthentication(token):
-    user_check = True
     if not token:
-        user_check = False
+        return False
     try:
         payload = jwt.decode(token, 'secret', algorithms=['HS256'])
-    except:
-        user_check = False
+    except jwt.InvalidTokenError:
+        return False
     try:
         user = MyUser.objects.get(pk=payload['id'])
-    except UnboundLocalError:
-        user_check = False
-    if user_check:
         return user
-    return user_check
+    except UnboundLocalError:
+        return False
 
 
 def CheckToken(token):
-    admin_check = True
     if not token:
-        admin_check = False
+        return False
     try:
         admin_token = jwt.decode(token, 'secret', algorithms=['HS256'])
-    except:
-        admin_check = False
+    except jwt.InvalidTokenError:
+        return False
     try:
         admin = Admin.objects.get(pk=admin_token['id'])
-    except UnboundLocalError:
-        admin_check = False
-    if admin_check:
         return admin
-    return admin_check
+    except UnboundLocalError:
+        return False
+
+
+def Is_Find(model, username, password, unis):
+    qs = model.objects.filter(username=username)
+    if qs.exists():
+        ps = qs.filter(password=password)
+        if ps.exists():
+            my_uni = qs.filter(unis_id=unis)
+            if my_uni.exists():
+                return True
+            return False
+        return False
+    return False

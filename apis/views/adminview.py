@@ -1,3 +1,4 @@
+from django.contrib.auth import authenticate
 from rest_framework import viewsets
 from rest_framework.response import Response
 from apis.models.user import Admin
@@ -6,6 +7,7 @@ import datetime
 import jwt
 
 from apis.serializations.adminserialization import AdminSerializer
+from module.check import Is_Find
 
 
 class AdminViewSet(viewsets.ViewSet):
@@ -15,22 +17,14 @@ class AdminViewSet(viewsets.ViewSet):
         return Response(serializer.data)
 
     def create(self, request):
-        gettoken = False
         username = request.data.get("username")
         password = request.data.get("password")
         unis = request.data.get("unis")
-        qs = Admin.objects.filter(username=username)
-        if qs.exists():
-            ps = qs.filter(password=password)
-            if ps.exists():
-                my_uni = qs.filter(unis_id=unis)
-                if my_uni.exists():
-                    my_id = qs.first().id
-                    gettoken = True
-
+        gettoken = Is_Find(Admin, username, password, unis)
         if gettoken:
+            admin = Admin.objects.filter(password=password).first()
             admin_load = {
-                'id': my_id,
+                'id': admin.id,
                 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=60),
                 'iat': datetime.datetime.utcnow()
             }

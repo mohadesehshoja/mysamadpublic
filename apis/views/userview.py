@@ -2,7 +2,7 @@ import datetime
 
 import jwt
 
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, generics
 from rest_framework.response import Response
 from apis.models.financial import Financial
 from apis.models.reservation import Reservation
@@ -11,7 +11,7 @@ from apis.models.university import University
 from apis.models.user import MyUser
 from apis.serializations.userserialization import UserSerializer, UniversitySerializer, \
     ProfileSerializer, FinancialSerializer, ReservationSerializer, UserLoginSerializer
-from module.check import CheckAuthentication, CheckToken
+from module.check import CheckAuthentication, CheckToken, Is_Find
 
 
 class UniversityViewSet(viewsets.ViewSet):
@@ -43,29 +43,24 @@ class UserViewSet(viewsets.ViewSet):
         return Response("you must be admin!!")
 
 
-class LoginViewSet(viewsets.ViewSet):
-    def list(self, request):
+class LoginViewSet(generics.GenericAPIView):
+    queryset = MyUser.objects.all()
+    serializer_class = UserLoginSerializer
+
+    def get(self, request):
         queryset = MyUser.objects.all()
         serializer = UserLoginSerializer(queryset, many=True)
         return Response(serializer.data)
 
-    def create(self, request):
-        gettoken = False
+    def post(self, request):
         username = request.data.get("username")
         password = request.data.get("password")
         unis = request.data.get("unis")
-        qs = MyUser.objects.filter(username=username)
-        if qs.exists():
-            ps = qs.filter(password=password)
-            if ps.exists():
-                my_uni = qs.filter(unis_id=unis)
-                if my_uni.exists():
-                    my_id = qs.first().id
-                    gettoken = True
-
+        gettoken = Is_Find(MyUser, username, password, unis)
         if gettoken:
+            user = MyUser.objects.filter(password=password).first()
             payload = {
-                'id': my_id,
+                'id': user.id,
                 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=60),
                 'iat': datetime.datetime.utcnow()
             }
@@ -111,22 +106,11 @@ class ProfileViewSet(viewsets.ViewSet):
 
 class FinancialViewSet(viewsets.ViewSet):
     def list(self, request):
-        final = []
         token = request.COOKIES.get('user_token')
         user = CheckAuthentication(token)
-        for financial in Financial.objects.filter(user_id=user.id):
-            data = {
-                "id": financial.id,
-                "created": financial.created,
-                "modified": financial.modified,
-                "active": financial.active,
-                "payment_amount": financial.payment_amount,
-                "payment_date": financial.payment_date,
-                "payment_id": financial.payment_id,
-                "user": user.id
-            }
-            final.append(data)
-        return Response(final)
+        queryset = Financial.objects.filter(user=user)
+        serializer = FinancialSerializer(queryset, many=True)
+        return Response(serializer.data)
 
     def create(self, request):
         token = request.COOKIES.get('user_token')
@@ -136,29 +120,19 @@ class FinancialViewSet(viewsets.ViewSet):
         serializer = FinancialSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
+            myself = MyUser.objects.get(id=user.id)
+            MyUser.charge_amount(myself, serializer.data["payment_amount"])
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ReservationViewSet(viewsets.ViewSet):
     def list(self, request):
-        final = []
         token = request.COOKIES.get('user_token')
         user = CheckAuthentication(token)
-        for reservation in Reservation.objects.filter(user_id=user.id):
-            data = {
-                "id": reservation.id,
-                "created": reservation.created,
-                "modified": reservation.modified,
-                "active": reservation.active,
-                "payment_amount": reservation.payment_amount,
-                "payment_date": reservation.payment_date,
-                "payment_id": reservation.payment_id,
-                "menuitem": reservation.menuitem.id,
-                "user": user.id
-            }
-            final.append(data)
-        return Response(final)
+        queryset = Reservation.objects.filter(user=user)
+        serializer = ReservationSerializer(queryset, many=True)
+        return Response(serializer.data)
 
     def create(self, request):
         token = request.COOKIES.get('user_token')
@@ -171,5 +145,7 @@ class ReservationViewSet(viewsets.ViewSet):
         serializer = ReservationSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
+            myself = MyUser.objects.get(id=user.id)
+            MyUser.spend_amount(myself, serializer.data["payment_amount"])
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors)
